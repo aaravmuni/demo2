@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=820">
+<title>Online Services Portal :: Form B</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="shell">
+  <div id="chrome-header"></div>
+  <div class="body-cols">
+    <div class="sidebar" id="chrome-sidebar"></div>
+    <div class="content">
+      <div id="formErrors"></div>
+
+      <h1>Form B <span class="code">SECTION 4 / DISCLOSURE BLOCK</span></h1>
+      <p class="subnote">Provide values exactly. Derived values must be computed before
+        submission. Do not include separators or symbols unless instructed.</p>
+
+      <h2>Section 4 &mdash; Categorisation</h2>
+      <table class="formgrid">
+        <tr>
+          <td class="lab"><span class="req">*</span> Category Code (Field 6)</td>
+          <td>
+            <select id="category" class="long" style="width:300px"></select>
+            <span class="hint">Select the applicable code. Codes are not ordered by name.</span>
+          </td>
+        </tr>
+        <tr>
+          <td class="lab">Sub-Category (Field 6a)</td>
+          <td>
+            <input type="text" id="subcat" class="med" maxlength="6">
+            <span class="hint">Optional. Six characters maximum.</span>
+          </td>
+        </tr>
+      </table>
+
+      <h2>Section 5 &mdash; Values</h2>
+      <table class="formgrid">
+        <tr>
+          <td class="lab"><span class="req">*</span> Value (Field 9)</td>
+          <td>
+            <input type="text" id="value9" class="med">
+            <span class="hint">Whole units only. No separators, decimals, or symbols.</span>
+          </td>
+        </tr>
+        <tr>
+          <td class="lab">Adjustment (Field 9a)</td>
+          <td>
+            <input type="text" id="value9a" class="short">
+            <span class="hint">Whole units. Defaults to 0 if omitted.</span>
+          </td>
+        </tr>
+        <tr>
+          <td class="lab"><span class="req">*</span> Disposition (Field 10)</td>
+          <td>
+            <label style="font-size:10px"><input type="radio" name="disp" value="1"> Code&nbsp;1</label>
+            <label style="font-size:10px"><input type="radio" name="disp" value="2"> Code&nbsp;2</label>
+            <label style="font-size:10px"><input type="radio" name="disp" value="3"> Code&nbsp;3</label>
+            <label style="font-size:10px"><input type="radio" name="disp" value="9"> Code&nbsp;9</label>
+            <span class="hint">Select one disposition code.</span>
+          </td>
+        </tr>
+        <tr>
+          <td class="lab"><span class="req">*</span> Derived Total (Field 12)</td>
+          <td>
+            <input type="text" id="derived" class="med" readonly>
+            <button id="recalcBtn" type="button">Recalculate</button>
+            <span class="hint">Must be derived from Fields 9 and 9a before proceeding.</span>
+          </td>
+        </tr>
+      </table>
+
+      <h2>Section 6 &mdash; Schedule &amp; Attestations</h2>
+      <p class="subnote">Review the schedule below in full. Attestations appear at the end of
+        this section and are mandatory where indicated.</p>
+      <div style="font-size:10px;color:#6a6453;border:1px solid #d3cdbc;background:#fbfaf4;padding:6px 8px">
+        <p><b>Schedule 6-A.</b> The values declared in Section 5 are subject to the conditions
+        enumerated herein. Where a value is expressed in whole units, the institution may
+        derive ancillary figures at its discretion.</p>
+        <p>6-A.1 &mdash; Figures are construed as nominal.</p>
+        <p>6-A.2 &mdash; Adjustments under Field 9a may not exceed the principal under Field 9.</p>
+        <p>6-A.3 &mdash; Derived totals are advisory and may be recomputed.</p>
+        <p>6-A.4 &mdash; Where Disposition Code 9 is selected, additional review applies.</p>
+        <p>6-A.5 &mdash; Nothing in this schedule confers any entitlement.</p>
+        <p>6-A.6 &mdash; This schedule is provided for completeness and is intentionally lengthy.</p>
+        <p>6-A.7 &mdash; The attestation below is required notwithstanding any selection above.</p>
+        <p>6-A.8 &mdash; Continued.</p>
+        <p>6-A.9 &mdash; Continued.</p>
+      </div>
+
+      <table class="formgrid">
+        <tr>
+          <td class="lab"></td>
+          <td>
+            <label><input type="checkbox" id="att9c">
+              <span class="req">*</span> Attestation 9(c): I affirm the values in Section 5.</label>
+            <span class="hint">Required. Field reference: ATT9C.</span>
+          </td>
+        </tr>
+        <tr>
+          <td class="lab"></td>
+          <td>
+            <label><input type="checkbox" id="att9d">
+              Attestation 9(d): I consent to ancillary derivation (optional).</label>
+          </td>
+        </tr>
+      </table>
+
+      <div class="btnrow">
+        <!-- PLANTED: button sides swapped vs every other page -->
+        <div class="left">
+          <button id="nextBtn" class="btn-primary">Next &raquo;</button>
+        </div>
+        <div class="right">
+          <button id="backBtn">&laquo; Previous</button>
+        </div>
+      </div>
+      <p class="tiny" style="margin-top:6px">Form B. Derived Total must be current before
+        submission or Field 12 will be rejected.</p>
+
+    </div>
+  </div>
+  <div class="foot" id="chrome-footer"></div>
+</div>
+
+<script src="app.js"></script>
+<script>
+(function () {
+  UOSP.buildChrome({
+    crumb: "Applications &raquo; New Request &raquo; <b>Form B</b>",
+    // denominator stayed /5 but the step number jumped 2 -> 4 (planted)
+    progressLabel: 'Process status: <b>Step 4 of 5</b>',
+    pct: 58,
+    ticks: "&#9632; &#9632; &#9632; &#9632; &#9633;"
+  });
+
+  // --- build a long, unsorted, cryptic category list ---
+  var sel = document.getElementById("category");
+  sel.appendChild(new Option("-- Select --", ""));
+  var seeds = ["GL", "MX", "QA", "ZN", "RR", "TC", "DV", "PP", "KX", "HL", "BN", "WO"];
+  var codes = [];
+  for (var i = 0; i < 58; i++) {
+    var s = seeds[(i * 7 + 3) % seeds.length];
+    var num = ((i * 137 + 41) % 900) + 100;
+    var hex = (((i * 2654435761) >>> 0) & 0xff).toString(16).toUpperCase();
+    codes.push("CC-" + s + num + " / 0x" + ("0" + hex).slice(-2));
+  }
+  // deliberately NOT sorted
+  codes.forEach(function (c) { sel.appendChild(new Option(c, c)); });
+
+  var st = UOSP.loadState();
+  if (st.category) sel.value = st.category;
+  if (st.value9) document.getElementById("value9").value = st.value9;
+
+  // --- integer-only money field: rejects commas, decimals, symbols ---
+  var derivedValid = false;
+  ["value9", "value9a"].forEach(function (id) {
+    document.getElementById(id).addEventListener("input", function () {
+      derivedValid = false; // any change invalidates the derived total
+      document.getElementById("derived").value = "";
+    });
+  });
+
+  // --- Recalculate: ignores the FIRST click, then stalls ~3s (planted) ---
+  var recalcArmed = false;
+  document.getElementById("recalcBtn").addEventListener("click", function () {
+    if (!recalcArmed) {
+      // first click: silently "arms" and does nothing visible
+      recalcArmed = true;
+      return;
+    }
+    recalcArmed = false;
+    var v9 = document.getElementById("value9").value.trim();
+    var v9a = document.getElementById("value9a").value.trim() || "0";
+    if (!/^\d+$/.test(v9) || !/^\d+$/.test(v9a)) {
+      UOSP.showErrors(["Field 9 / 9a contain non-permitted characters. Whole units only."]);
+      UOSP.markErr("value9");
+      return;
+    }
+    UOSP.showErrors([]);
+    UOSP.clearFieldErr();
+    UOSP.showOverlay("Deriving Field 12&hellip;");
+    UOSP.serverDelay(2900, 900).then(function () {
+      UOSP.hideOverlay();
+      document.getElementById("derived").value = (parseInt(v9, 10) + parseInt(v9a, 10));
+      derivedValid = true;
+    });
+  });
+
+  document.getElementById("backBtn").addEventListener("click", function () {
+    UOSP.go("step2.html", "Returning to previous section&hellip;", 1500, 800);
+  });
+
+  document.getElementById("nextBtn").addEventListener("click", function () {
+    UOSP.clearFieldErr();
+    var errs = [];
+    var cat = document.getElementById("category").value;
+    var v9 = document.getElementById("value9").value.trim();
+    var disp = document.querySelector('input[name=disp]:checked');
+    var att = document.getElementById("att9c").checked;
+
+    if (!cat) { errs.push("Field 6 (Category Code) is required."); UOSP.markErr("category"); }
+    if (!v9) { errs.push("Field 9 is required."); UOSP.markErr("value9"); }
+    else if (!/^\d+$/.test(v9)) {
+      errs.push("Field 9 contains non-permitted characters (separators/decimals/symbols not allowed).");
+      UOSP.markErr("value9");
+    }
+    if (!disp) { errs.push("Field 10 (Disposition) is required."); }
+    if (!derivedValid || !document.getElementById("derived").value) {
+      errs.push("Field 12 has not been derived from current values. Use Recalculate.");
+      UOSP.markErr("derived");
+    }
+    // PLANTED: this required control is below the fold; error names ATT9C, not the label
+    if (!att) { errs.push("Field ATT9C is required."); UOSP.markErr("att9c"); }
+
+    if (errs.length) { UOSP.showErrors(errs); return; }
+    UOSP.showErrors([]);
+
+    UOSP.saveState({
+      category: cat,
+      subcat: document.getElementById("subcat").value.trim(),
+      value9: v9,
+      value9a: document.getElementById("value9a").value.trim() || "0",
+      derived: document.getElementById("derived").value,
+      disposition: disp.value,
+      att9c: true,
+      att9d: document.getElementById("att9d").checked
+    });
+    UOSP.go("step4.html", "Submitting disclosure block&hellip;", 2300, 1500);
+  });
+})();
+</script>
+</body>
+</html>

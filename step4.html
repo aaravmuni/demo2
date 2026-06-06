@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=820">
+<title>Online Services Portal :: Validation Test</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="shell">
+  <div id="chrome-header"></div>
+  <div class="body-cols">
+    <div class="sidebar" id="chrome-sidebar"></div>
+    <div class="content">
+      <div id="formErrors"></div>
+
+      <h1>Validation Test <span class="code">SECTION 7 / VERIFICATION BLOCK</span></h1>
+      <p class="subnote">Complete the challenge and verification steps in order. Responses
+        are case-significant. Codes expire and may require re-issue.</p>
+
+      <h2>Section 7.1 &mdash; Challenge</h2>
+      <table class="formgrid">
+        <tr>
+          <td class="lab">Challenge String</td>
+          <td>
+            <span class="captcha-box" id="capText">&nbsp;</span>
+            &nbsp;<a href="#" id="capRefresh" class="tiny">refresh</a>
+          </td>
+        </tr>
+        <tr>
+          <td class="lab"><span class="req">*</span> Challenge Response</td>
+          <td>
+            <input type="text" id="capInput" class="med" maxlength="5" autocomplete="off">
+            <span class="hint">Enter the string exactly, including letter case.</span>
+          </td>
+        </tr>
+        <tr>
+          <td class="lab"></td>
+          <td>
+            <button id="requestBtn">Request Verification Code</button>
+            <span class="hint" id="reqHint">A code will be issued after the challenge is satisfied.</span>
+          </td>
+        </tr>
+      </table>
+
+      <h2>Section 7.2 &mdash; Verification Code</h2>
+      <table class="formgrid">
+        <tr>
+          <td class="lab"><span class="req">*</span> Code (6 digits)</td>
+          <td>
+            <div class="otp" id="otp">
+              <input type="text" maxlength="1" inputmode="numeric" disabled>
+              <input type="text" maxlength="1" inputmode="numeric" disabled>
+              <input type="text" maxlength="1" inputmode="numeric" disabled>
+              <input type="text" maxlength="1" inputmode="numeric" disabled>
+              <input type="text" maxlength="1" inputmode="numeric" disabled>
+              <input type="text" maxlength="1" inputmode="numeric" disabled>
+            </div>
+            <span class="hint">Enter the six-digit code. The code is time-limited.</span>
+            <div class="tiny" id="codeNote" style="margin-top:4px">&nbsp;</div>
+          </td>
+        </tr>
+      </table>
+
+      <div class="btnrow">
+        <div class="left">
+          <button id="backBtn">&laquo; Previous</button>
+        </div>
+        <div class="right">
+          <button id="verifyBtn" class="btn-primary" disabled>Verify &raquo;</button>
+        </div>
+      </div>
+      <p class="tiny" style="margin-top:6px">Validation Test. On an incorrect response the
+        challenge is re-issued.</p>
+
+    </div>
+  </div>
+  <div class="foot" id="chrome-footer"></div>
+</div>
+
+<script src="app.js"></script>
+<script>
+(function () {
+  UOSP.buildChrome({
+    crumb: "Applications &raquo; New Request &raquo; <b>Validation Test</b>",
+    // denominator changed again: /6 now (planted)
+    progressLabel: 'Process status: <b>Step 4 of 6</b>',
+    pct: 71,
+    ticks: "&#9632; &#9632; &#9632; &#9632; &#9633; &#9633;",
+    timeoutAfter: 21000 // make the inactivity modal interrupt mid-step
+  });
+
+  var captcha = "";
+  var issuedCode = "";
+  var codeReady = false;
+
+  function newCaptcha() {
+    captcha = UOSP.makeCaptcha();
+    document.getElementById("capText").textContent = captcha;
+  }
+  newCaptcha();
+  document.getElementById("capRefresh").addEventListener("click", function (e) {
+    e.preventDefault();
+    newCaptcha();
+    document.getElementById("capInput").value = "";
+  });
+
+  var otpInputs = Array.prototype.slice.call(document.querySelectorAll("#otp input"));
+
+  // --- OTP UX: auto-advance forward, but Backspace is broken (planted) ---
+  otpInputs.forEach(function (inp, idx) {
+    inp.addEventListener("input", function () {
+      inp.value = inp.value.replace(/[^0-9]/g, "");
+      if (inp.value && idx < otpInputs.length - 1) otpInputs[idx + 1].focus();
+    });
+    inp.addEventListener("keydown", function (e) {
+      // Backspace intentionally does not move focus back or clear prior box.
+      if (e.key === "Backspace") { e.preventDefault(); }
+    });
+  });
+
+  function setOtpEnabled(on) {
+    otpInputs.forEach(function (i) { i.disabled = !on; if (!on) i.value = ""; });
+  }
+
+  // --- Request Code: validates captcha (case-sensitive), then "sends" after a delay ---
+  document.getElementById("requestBtn").addEventListener("click", function () {
+    UOSP.clearFieldErr();
+    var resp = document.getElementById("capInput").value;
+    if (resp !== captcha) {
+      UOSP.showErrors(["Challenge response incorrect. A new challenge has been issued."]);
+      UOSP.markErr("capInput");
+      newCaptcha();
+      document.getElementById("capInput").value = "";
+      return;
+    }
+    UOSP.showErrors([]);
+    UOSP.showOverlay("Issuing verification code&hellip;", "This may take a moment.");
+    UOSP.serverDelay(3100, 1200).then(function () {
+      UOSP.hideOverlay();
+      issuedCode = ("00000" + Math.floor(Math.random() * 1000000)).slice(-6);
+      codeReady = true;
+      setOtpEnabled(true);
+      document.getElementById("verifyBtn").disabled = false;
+      document.getElementById("reqHint").textContent = "Code issued. Delivery simulated.";
+      // delivered "out of band" — here, tucked into a small note (and the console)
+      document.getElementById("codeNote").innerHTML =
+        'Delivery channel unavailable in demonstration. ' +
+        '<span class="inlinecode">issued: ' + issuedCode + '</span>';
+      try { console.log("[UOSP] verification code (demo):", issuedCode); } catch (e) {}
+      otpInputs[0].focus();
+    });
+  });
+
+  document.getElementById("backBtn").addEventListener("click", function () {
+    UOSP.go("step3.html", "Returning to previous section&hellip;", 1500, 800);
+  });
+
+  document.getElementById("verifyBtn").addEventListener("click", function () {
+    if (!codeReady) return;
+    var entered = otpInputs.map(function (i) { return i.value; }).join("");
+    if (entered.length < 6) {
+      UOSP.showErrors(["The verification code is incomplete."]);
+      return;
+    }
+    UOSP.showOverlay("Verifying&hellip;");
+    UOSP.serverDelay(2500, 900).then(function () {
+      UOSP.hideOverlay();
+      if (entered !== issuedCode) {
+        // wrong code: error AND re-issue the challenge (extra friction, recoverable)
+        UOSP.showErrors(["Verification code incorrect or expired. Re-enter and, if necessary, request a new code."]);
+        otpInputs.forEach(function (i) { i.value = ""; });
+        newCaptcha();
+        otpInputs[0].focus();
+        return;
+      }
+      UOSP.showErrors([]);
+      UOSP.saveState({ verified: true });
+      UOSP.go("step5.html", "Recording verification&hellip;", 1800, 1000);
+    });
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=820">
+<title>Online Services Portal :: Summary Output</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="shell">
+  <div id="chrome-header"></div>
+  <div class="body-cols">
+    <div class="sidebar" id="chrome-sidebar"></div>
+    <div class="content">
+      <div id="formErrors"></div>
+
+      <h1>Summary Output <span class="code">SECTION 8 / REVIEW BLOCK</span></h1>
+      <p class="subnote">Review the captured output. Items shown as
+        <span class="req">not on file</span> were not retained and may require re-entry.
+        Submission is final.</p>
+
+      <h2>Captured Output</h2>
+      <table class="review" id="reviewTable"><tbody></tbody></table>
+
+      <h2>Section 8.1 &mdash; Declaration</h2>
+      <table class="formgrid">
+        <tr>
+          <td class="lab"></td>
+          <td>
+            <button id="printBtn">Print Preview</button>
+            <span class="hint">Generate a preview of this output.</span>
+          </td>
+        </tr>
+        <tr>
+          <td class="lab"></td>
+          <td>
+            <label><input type="checkbox" id="certify">
+              <span class="req">*</span> I certify the captured output is complete and accurate.</label>
+          </td>
+        </tr>
+      </table>
+
+      <div class="btnrow">
+        <div class="left">
+          <button id="backBtn">&laquo; Previous</button>
+        </div>
+        <div class="right">
+          <button id="submitBtn" class="btn-primary" disabled>Submit Application</button>
+        </div>
+      </div>
+      <p class="tiny" style="margin-top:6px" id="subnote2">Summary Output. Submission becomes
+        available once the declaration is accepted.</p>
+
+    </div>
+  </div>
+  <div class="foot" id="chrome-footer"></div>
+</div>
+
+<script src="app.js"></script>
+<script>
+(function () {
+  UOSP.buildChrome({
+    crumb: "Applications &raquo; New Request &raquo; <b>Summary Output</b>",
+    // denominator back to /5, and now "5 of 5" though earlier we saw "4 of 6" (planted)
+    progressLabel: 'Process status: <b>Step 5 of 5</b>',
+    pct: 93,
+    ticks: "&#9632; &#9632; &#9632; &#9632; &#9632;"
+  });
+
+  var st = UOSP.loadState();
+
+  function val(v) {
+    if (v === undefined || v === null || v === "") {
+      return '<span class="blank">&mdash; not on file &mdash;</span>';
+    }
+    return String(v).replace(/</g, "&lt;");
+  }
+
+  // rows: [label, value, editTarget]
+  var rows = [
+    ["Selection Type (Field 0)", st.appType, "index.html"],
+    ["Primary Identifier", st.primaryId, "step1.html"],
+    ["Secondary Identifier", st.secondaryId, "step1.html"],
+    ["Designation Code", st.designation, "step1.html"],
+    ["Reference Number", st.refNum, "step1.html"], // never saved -> blank (planted)
+    ["Contact Sequence", st.contactSeq, "step1.html"],
+    ["Origination Date", st.origDate, "step1.html"],
+    ["Locale Code", st.locale, "step1.html"],
+    ["Classification", st.classification, "step1.html"],
+    ["Document A (Type 1)", st.docA, "step2.html"],
+    ["Document B (Type 2)", st.docB, "step2.html"],
+    ["Supplemental Item", st.docS, "step2.html"],
+    ["Category Code (Field 6)", st.category, "step3.html"],
+    ["Sub-Category (Field 6a)", st.subcat, "step3.html"],
+    ["Value (Field 9)", st.value9, "step3.html"],
+    ["Adjustment (Field 9a)", st.value9a, "step3.html"],
+    ["Derived Total (Field 12)", st.derived, "step3.html"],
+    ["Disposition (Field 10)", st.disposition, "step3.html"],
+    ["Verification", st.verified ? "Completed" : "", "step4.html"]
+  ];
+
+  var tb = document.querySelector("#reviewTable tbody");
+  rows.forEach(function (r) {
+    var tr = document.createElement("tr");
+    tr.innerHTML = "<th>" + r[0] + "</th><td>" + val(r[1]) +
+      ' <a href="#" class="editlink tiny" data-go="' + r[2] + '">[edit]</a></td>';
+    tb.appendChild(tr);
+  });
+
+  // edit links drag the user back through the navigation delays
+  Array.prototype.forEach.call(document.querySelectorAll(".editlink"), function (a) {
+    a.addEventListener("click", function (e) {
+      e.preventDefault();
+      UOSP.go(a.getAttribute("data-go"), "Re-opening section for edit&hellip;", 1700, 900);
+    });
+  });
+
+  // --- hidden dependency: Submit needs BOTH the certify box AND a prior Print Preview ---
+  var printed = false;
+  function refreshSubmit() {
+    document.getElementById("submitBtn").disabled =
+      !(printed && document.getElementById("certify").checked);
+  }
+
+  document.getElementById("printBtn").addEventListener("click", function () {
+    UOSP.showOverlay("Generating print preview&hellip;");
+    UOSP.serverDelay(2200, 1000).then(function () {
+      UOSP.hideOverlay();
+      printed = true;
+      refreshSubmit();
+      alert("Print preview generated. If a preview window did not appear, " +
+            "your output has still been prepared.");
+    });
+  });
+
+  document.getElementById("certify").addEventListener("change", refreshSubmit);
+
+  document.getElementById("backBtn").addEventListener("click", function () {
+    UOSP.go("step4.html", "Returning to previous section&hellip;", 1500, 800);
+  });
+
+  document.getElementById("submitBtn").addEventListener("click", function () {
+    var flags = UOSP.loadFlags();
+    var attempts = (flags.submitAttempts || 0) + 1;
+    UOSP.setFlag("submitAttempts", attempts);
+
+    UOSP.cycleOverlay([
+      "Submitting application&hellip;",
+      "Reserving processing slot&hellip;",
+      "Committing captured output&hellip;",
+      "Awaiting acknowledgement&hellip;",
+      "Finalising&hellip;"
+    ], 1000);
+
+    UOSP.serverDelay(5200, 1800).then(function () {
+      // PLANTED: first submission attempt fails; retry succeeds
+      if (attempts === 1) {
+        UOSP.hideOverlay();
+        UOSP.showErrors(["Submission failed (ERR_SUBMIT_0x11): acknowledgement not received. " +
+          "Your output has been retained. Please retry."]);
+        document.getElementById("subnote2").textContent =
+          "A transient error occurred. Re-submission is permitted.";
+        return;
+      }
+      var conf = "APP-" + UOSP.sessionId() + "-" +
+        ("0000" + Math.floor(Math.random() * 10000)).slice(-4);
+      UOSP.saveState({ confirmation: conf });
+      location.href = "done.html";
+    });
+  });
+})();
+</script>
+</body>
+</html>

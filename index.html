@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=820">
+<title>Online Services Portal :: Application Module</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="shell">
+  <div id="chrome-header"></div>
+  <div class="body-cols">
+    <div class="sidebar" id="chrome-sidebar"></div>
+    <div class="content">
+      <div id="formErrors"></div>
+
+      <h1>Application Module <span class="code">REF: UOSP-APP / v3.1.7</span></h1>
+      <p class="subnote">Process Code 0001. Complete all required sections. Fields marked
+        <span class="req">*</span> are mandatory unless otherwise indicated (see Ref. 4.2).</p>
+
+      <div class="msg msg-info">
+        You are entering a multi-section process. Do not use your browser&rsquo;s Back or
+        Forward controls at any point. Session output is retained for the duration of
+        activity only.
+      </div>
+
+      <h2>Section 0 &mdash; Pre-Acknowledgement</h2>
+
+      <table class="formgrid">
+        <tr>
+          <td class="lab"><span class="req">*</span> Selection Type</td>
+          <td>
+            <select id="appType" class="long">
+              <option value="">-- Select --</option>
+              <option value="R">Type R</option>
+              <option value="C">Type C</option>
+              <option value="X">Type X (restricted)</option>
+              <option value="O">Other / Unspecified</option>
+            </select>
+            <span class="hint">If unsure, do not select. Refer to eligibility matrix.</span>
+          </td>
+        </tr>
+        <tr>
+          <td class="lab"><span class="req">*</span> Channel Designation</td>
+          <td>
+            <select id="channel" class="long">
+              <option value="WEB" selected>WEB-SELF-SERVE</option>
+              <option value="BR">BRANCH-ASSISTED</option>
+              <option value="TP">THIRD-PARTY</option>
+            </select>
+          </td>
+        </tr>
+        <tr>
+          <td class="lab">Reference Token</td>
+          <td>
+            <input type="text" id="refToken" class="med" maxlength="12" readonly>
+            <span class="hint">System-assigned. Do not modify.</span>
+          </td>
+        </tr>
+      </table>
+
+      <h2>Section 0.1 &mdash; Disclosure Acknowledgement</h2>
+      <p class="subnote">You must review the disclosure in full before proceeding.</p>
+      <div class="scrollbox" id="termsBox">
+        <p><b>DISCLOSURE AND CONDITIONS OF USE (Document T-0)</b></p>
+        <p>1. The following constitutes the terms governing your use of the Application
+        Module ("the Module"). By proceeding you acknowledge that you have read,
+        understood, and accepted these terms in their entirety, including any schedules
+        incorporated by reference whether or not actually provided to you.</p>
+        <p>2. The Module collects information you supply across multiple sections. Such
+        information may be validated against internal and external registries. Validation
+        outcomes are non-negotiable and may not be explained.</p>
+        <p>3. Document uploads are subject to format, checksum, and registry verification.
+        Re-submission may be required. The institution accepts no responsibility for time
+        expended.</p>
+        <p>4. Sessions may expire without notice. Saved progress is best-effort and not
+        guaranteed. Certain fields are not retained between sections by design.</p>
+        <p>5. This is a demonstration environment. No actual financial product is offered,
+        opened, funded, or implied. All identifiers are simulated.</p>
+        <p>6. Your interaction patterns &mdash; including time spent, corrections made,
+        and points of abandonment &mdash; may be measured for usability research.</p>
+        <p>7. By scrolling to the end of this notice you are deemed to have read clauses
+        1 through 8, including clause 8 which appears only here: you agree the progress
+        indicator is approximate and not a contractual representation of remaining effort.</p>
+        <p style="color:#b0001f"><b>&mdash; End of Disclosure T-0 &mdash;</b></p>
+      </div>
+
+      <table class="formgrid">
+        <tr>
+          <td class="lab"></td>
+          <td>
+            <label><input type="checkbox" id="agree" disabled>
+              <span class="req">*</span> I acknowledge Document T-0.</label>
+            <span class="hint" id="agreeHint">(Scroll the disclosure to its end to enable.)</span>
+          </td>
+        </tr>
+      </table>
+
+      <div class="btnrow">
+        <div class="right">
+          <button id="continueBtn" class="btn-primary" disabled>Continue &raquo;</button>
+        </div>
+        <div class="left">
+          <span class="tiny">Form C-0. Output not yet committed.</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  <div class="foot" id="chrome-footer"></div>
+</div>
+
+<script src="app.js"></script>
+<script>
+(function () {
+  UOSP.buildChrome({
+    crumb: "Applications &raquo; New Request &raquo; <b>Start</b>",
+    progressLabel: 'Process status: <b>Step 1 of 4</b>',
+    pct: 6,
+    ticks: "&#9632; &#9633; &#9633; &#9633;"
+  });
+
+  // system-assigned read-only token
+  document.getElementById("refToken").value = "T-" + UOSP.sessionId();
+
+  // restore prior selections if user came back
+  var st = UOSP.loadState();
+  if (st.appType) document.getElementById("appType").value = st.appType;
+
+  // --- terms gate: checkbox only enables after scrolling to the bottom ---
+  var box = document.getElementById("termsBox");
+  var agree = document.getElementById("agree");
+  var hint = document.getElementById("agreeHint");
+  box.addEventListener("scroll", function () {
+    // require near-complete scroll (a few px of slack)
+    if (box.scrollTop + box.clientHeight >= box.scrollHeight - 4) {
+      agree.disabled = false;
+      hint.textContent = "(Enabled.)";
+    }
+  });
+
+  // --- continue only enables when acknowledged (no explanation otherwise) ---
+  var cont = document.getElementById("continueBtn");
+  agree.addEventListener("change", function () {
+    cont.disabled = !agree.checked;
+  });
+
+  cont.addEventListener("click", function () {
+    var errs = [];
+    var t = document.getElementById("appType").value;
+    UOSP.clearFieldErr();
+    if (!t) { errs.push("A required selection (Selection Type) has not been made."); UOSP.markErr("appType"); }
+    if (t === "X") { errs.push("Type X is restricted and cannot be processed through this channel."); UOSP.markErr("appType"); }
+    if (errs.length) { UOSP.showErrors(errs); return; }
+    UOSP.showErrors([]);
+
+    UOSP.saveState({
+      appType: t,
+      channel: document.getElementById("channel").value
+    });
+
+    // artificial "initialize session" round-trip
+    UOSP.go("step1.html", "Initializing secure session&hellip;", 2400, 1400);
+  });
+})();
+</script>
+</body>
+</html>

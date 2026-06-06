@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=820">
+<title>Online Services Portal :: Form A</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="shell">
+  <div id="chrome-header"></div>
+  <div class="body-cols">
+    <div class="sidebar" id="chrome-sidebar"></div>
+    <div class="content">
+      <div id="formErrors"></div>
+
+      <h1>Form A <span class="code">SECTION 1 / IDENTITY BLOCK</span></h1>
+      <p class="subnote">Complete all required entries. Do not abbreviate unless instructed.
+        Entries are case-significant.</p>
+
+      <h2>Section 1 &mdash; Identity Block</h2>
+      <table class="formgrid">
+        <tr>
+          <td class="lab"><span class="req">*</span> Primary Identifier</td>
+          <td>
+            <input type="text" id="primaryId" class="long" tabindex="3"
+                   placeholder="Last, First M.">
+            <span class="hint">Format: surname, comma, given name. Must match registry.</span>
+          </td>
+        </tr>
+        <tr>
+          <td class="lab">Secondary Identifier</td>
+          <td>
+            <input type="text" id="secondaryId" class="long" tabindex="7">
+            <span class="hint">If none, leave blank. If blank, may be required later.</span>
+          </td>
+        </tr>
+        <tr>
+          <td class="lab"><span class="req">*</span> Designation Code</td>
+          <td>
+            <input type="text" id="designation" class="med" tabindex="1" maxlength="12">
+            <span class="hint">4&ndash;8 characters. Normalised on entry.</span>
+          </td>
+        </tr>
+        <tr>
+          <td class="lab">Reference Number</td>
+          <td>
+            <input type="text" id="refNum" class="med" tabindex="9">
+            <span class="hint">For internal cross-reference (Ref. 4.2).</span>
+          </td>
+        </tr>
+      </table>
+
+      <h2>Section 2 &mdash; Contact Block</h2>
+      <table class="formgrid">
+        <tr>
+          <td class="lab"><span class="req">*</span> Contact Sequence</td>
+          <td>
+            <input type="tel" id="contactSeq" class="med" tabindex="2"
+                   placeholder="enter digits">
+            <span class="hint">Numeric contact sequence.</span>
+          </td>
+        </tr>
+        <tr>
+          <td class="lab"><span class="req">*</span> Origination Date</td>
+          <td>
+            <input type="text" id="origDate" class="short" style="width:110px" tabindex="8"
+                   placeholder="MM/DD/YYYY" maxlength="10">
+            <span class="hint">Enter as DD/MM/YYYY.</span>
+          </td>
+        </tr>
+        <tr>
+          <td class="lab"><span class="req">*</span> Locale Code</td>
+          <td>
+            <select id="locale" class="med" tabindex="5">
+              <option value="">-- Select --</option>
+              <option value="L01">L01</option>
+              <option value="L02">L02</option>
+              <option value="L04">L04</option>
+              <option value="L07">L07</option>
+              <option value="L09">L09 (deprecated)</option>
+              <option value="L11">L11</option>
+            </select>
+            <span class="hint">Refer to locale schedule. L09 is deprecated but selectable.</span>
+          </td>
+        </tr>
+        <tr>
+          <td class="lab">Classification</td>
+          <td tabindex="6">
+            <label><input type="radio" name="cls" value="A"> A</label> &nbsp;
+            <label><input type="radio" name="cls" value="B"> B</label> &nbsp;
+            <label><input type="radio" name="cls" value="C"> C</label> &nbsp;
+            <label><input type="radio" name="cls" value="U" checked> U</label>
+            <span class="hint">Default U. Change only if applicable.</span>
+          </td>
+        </tr>
+      </table>
+
+      <div class="btnrow">
+        <div class="left">
+          <button id="backBtn" tabindex="20">&laquo; Previous</button>
+        </div>
+        <div class="right">
+          <button id="proceedBtn" class="btn-primary" tabindex="4">Proceed &raquo;</button>
+        </div>
+      </div>
+      <p class="tiny" style="margin-top:6px">Form A. Identity fields are protected and may be
+        cleared on validation failure.</p>
+
+    </div>
+  </div>
+  <div class="foot" id="chrome-footer"></div>
+</div>
+
+<script src="app.js"></script>
+<script>
+(function () {
+  UOSP.buildChrome({
+    crumb: "Applications &raquo; New Request &raquo; <b>Form A</b>",
+    progressLabel: 'Process status: <b>Step 2 of 4</b>',
+    pct: 22,
+    ticks: "&#9632; &#9632; &#9633; &#9633;"
+  });
+
+  var st = UOSP.loadState();
+  // restore most fields (refNum intentionally never persisted — see save below)
+  if (st.primaryId) document.getElementById("primaryId").value = st.primaryId;
+  if (st.secondaryId) document.getElementById("secondaryId").value = st.secondaryId;
+  if (st.designation) document.getElementById("designation").value = st.designation;
+  if (st.contactSeq) document.getElementById("contactSeq").value = st.contactSeq;
+  if (st.origDate) document.getElementById("origDate").value = st.origDate;
+  if (st.locale) document.getElementById("locale").value = st.locale;
+
+  // --- laggy auto-normalising field: uppercases + strips spaces after a delay,
+  //     which yanks the caret around and feels broken (planted) ---
+  var desig = document.getElementById("designation");
+  var desigTimer = null;
+  desig.addEventListener("input", function () {
+    if (desigTimer) clearTimeout(desigTimer);
+    desigTimer = setTimeout(function () {
+      var pos = desig.selectionStart;
+      desig.value = desig.value.toUpperCase().replace(/\s+/g, "");
+      try { desig.setSelectionRange(0, 0); } catch (e) {} // caret jumps to start
+      desig.selectionStart = pos; // ...then fights to restore — visibly janky
+    }, 320);
+  });
+
+  document.getElementById("backBtn").addEventListener("click", function () {
+    UOSP.go("index.html", "Returning to previous section&hellip;", 1500, 800);
+  });
+
+  document.getElementById("proceedBtn").addEventListener("click", function () {
+    UOSP.clearFieldErr();
+    var errs = [];
+
+    var primary = document.getElementById("primaryId").value.trim();
+    var desigV = document.getElementById("designation").value.trim().toUpperCase().replace(/\s+/g, "");
+    var contact = document.getElementById("contactSeq").value.trim();
+    var origin = document.getElementById("origDate").value.trim();
+    var locale = document.getElementById("locale").value;
+
+    if (!primary) { errs.push("Primary Identifier is required."); UOSP.markErr("primaryId"); }
+    else if (primary.indexOf(",") < 0) {
+      errs.push("Primary Identifier format invalid (expected: surname, comma, given name).");
+      UOSP.markErr("primaryId");
+    }
+
+    if (!desigV) { errs.push("Designation Code is required."); UOSP.markErr("designation"); }
+    else if (desigV.length < 4 || desigV.length > 8) {
+      errs.push("Designation Code must be 4 to 8 characters after normalisation.");
+      UOSP.markErr("designation");
+    }
+
+    // phone mask: rejects plain digit strings, demands (NNN) NNN-NNNN
+    if (!contact) { errs.push("Contact Sequence is required."); UOSP.markErr("contactSeq"); }
+    else if (!/^\(\d{3}\)\s\d{3}-\d{4}$/.test(contact)) {
+      errs.push("Contact Sequence does not satisfy mask (NNN) NNN-NNNN.");
+      UOSP.markErr("contactSeq");
+    }
+
+    // date: must be DD/MM/YYYY (placeholder says MM/DD/YYYY — mismatch is intentional)
+    if (!origin) { errs.push("Origination Date is required."); UOSP.markErr("origDate"); }
+    else {
+      var m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(origin);
+      if (!m) { errs.push("Origination Date is malformed."); UOSP.markErr("origDate"); }
+      else if (parseInt(m[1], 10) > 31 || parseInt(m[1], 10) < 1 ||
+               parseInt(m[2], 10) > 12 || parseInt(m[2], 10) < 1) {
+        errs.push("Origination Date out of range (DD/MM/YYYY).");
+        UOSP.markErr("origDate");
+      }
+    }
+
+    if (!locale) { errs.push("Locale Code selection is required."); UOSP.markErr("locale"); }
+
+    if (errs.length) {
+      // PLANTED: "for your protection" clear the two identity fields on any failure
+      document.getElementById("primaryId").value = "";
+      document.getElementById("designation").value = "";
+      errs.push("For your protection, identity fields have been cleared. Please re-enter.");
+      UOSP.showErrors(errs);
+      return;
+    }
+
+    UOSP.showErrors([]);
+
+    var clsEl = document.querySelector('input[name=cls]:checked');
+    UOSP.saveState({
+      primaryId: primary,
+      secondaryId: document.getElementById("secondaryId").value.trim(),
+      designation: desigV,
+      // refNum: INTENTIONALLY NOT SAVED -> shows blank on the review page (planted)
+      contactSeq: contact,
+      origDate: origin,
+      locale: locale,
+      classification: clsEl ? clsEl.value : "U"
+    });
+
+    UOSP.go("step2.html", "Validating identity block&hellip;", 2100, 1500);
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=820">
+<title>Online Services Portal :: Document Test</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="shell">
+  <div id="chrome-header"></div>
+  <div class="body-cols">
+    <div class="sidebar" id="chrome-sidebar"></div>
+    <div class="content">
+      <div id="formErrors"></div>
+
+      <h1>Document Test <span class="code">SECTION 3 / UPLOAD BLOCK</span></h1>
+      <p class="subnote">Attach the required items. Each item is scanned and verified
+        against the registry. Items failing verification must be re-submitted.</p>
+
+      <div class="msg msg-info">
+        Accepted container: PDF. Image formats may also be accepted. Maximum 5 MB per item.
+        Do not navigate away during scanning.
+      </div>
+
+      <h2>Required Items</h2>
+
+      <div class="docslot" id="slot-A" data-slot="A">
+        <div class="dt">Document A (Type 1) <span class="req">*</span></div>
+        <div class="dmeta">Container: PDF preferred. Item must pass checksum verification.</div>
+        <input type="file" id="file-A" style="display:none">
+        <button class="browse" data-for="A">Browse&hellip;</button>
+        <span class="fn tiny" id="fn-A">No file selected.</span>
+        <div class="barouter"><div class="barinner"></div></div>
+        <div class="status"></div>
+      </div>
+
+      <div class="docslot" id="slot-B" data-slot="B">
+        <div class="dt">Document B (Type 2) <span class="req">*</span></div>
+        <div class="dmeta">Container: PDF preferred. Must differ from Document A.</div>
+        <input type="file" id="file-B" style="display:none">
+        <button class="browse" data-for="B">Browse&hellip;</button>
+        <span class="fn tiny" id="fn-B">No file selected.</span>
+        <div class="barouter"><div class="barinner"></div></div>
+        <div class="status"></div>
+      </div>
+
+      <div class="docslot" id="slot-S" data-slot="S">
+        <div class="dt">Supplemental Item (Optional)</div>
+        <div class="dmeta">Provide if available. May be required depending on selection type.</div>
+        <input type="file" id="file-S" style="display:none">
+        <button class="browse" data-for="S">Browse&hellip;</button>
+        <span class="fn tiny" id="fn-S">No file selected.</span>
+        <div class="barouter"><div class="barinner"></div></div>
+        <div class="status"></div>
+      </div>
+
+      <div class="btnrow">
+        <div class="left">
+          <button id="backBtn">&laquo; Previous</button>
+        </div>
+        <div class="right">
+          <button id="validateBtn" class="btn-primary" disabled>Validate Documents &raquo;</button>
+        </div>
+      </div>
+      <p class="tiny" style="margin-top:6px" id="vhint">Document Test. The action above
+        becomes available once all items are accepted.</p>
+
+    </div>
+  </div>
+  <div class="foot" id="chrome-footer"></div>
+</div>
+
+<script src="app.js"></script>
+<script>
+(function () {
+  UOSP.buildChrome({
+    crumb: "Applications &raquo; New Request &raquo; <b>Document Test</b>",
+    // NOTE the denominator quietly changed from /4 to /5 (planted inconsistency)
+    progressLabel: 'Process status: <b>Step 2 of 5</b>',
+    pct: 34,
+    ticks: "&#9632; &#9632; &#9633; &#9633; &#9633;"
+  });
+
+  var ACCEPT = ["pdf", "png", "jpg", "jpeg"];
+  var MAXBYTES = 5 * 1024 * 1024;
+  var slotOk = { A: false, B: false, S: false };
+  var slotName = { A: "", B: "", S: "" };
+  var flags = UOSP.loadFlags();
+
+  function refreshValidate() {
+    // PLANTED: "Optional" supplemental is actually required to enable the button
+    var ready = slotOk.A && slotOk.B && slotOk.S;
+    document.getElementById("validateBtn").disabled = !ready;
+  }
+
+  function ext(name) {
+    var i = name.lastIndexOf(".");
+    return i < 0 ? "" : name.slice(i + 1).toLowerCase();
+  }
+
+  function handleFile(slot, file) {
+    var box = document.getElementById("slot-" + slot);
+    var bar = box.querySelector(".barouter");
+    var inner = box.querySelector(".barinner");
+    var status = box.querySelector(".status");
+    var fn = document.getElementById("fn-" + slot);
+
+    box.classList.remove("ok", "bad");
+    slotOk[slot] = false;
+    refreshValidate();
+
+    fn.textContent = file.name + " (" + Math.max(1, Math.round(file.size / 1024)) + " KB)";
+
+    // type check (cryptic codes)
+    if (ACCEPT.indexOf(ext(file.name)) < 0) {
+      box.classList.add("bad");
+      status.innerHTML = '<span class="inlinecode">ERR_DOC_0x2</span>: unsupported container. Re-submit a valid item.';
+      return;
+    }
+    if (file.size > MAXBYTES) {
+      box.classList.add("bad");
+      status.innerHTML = '<span class="inlinecode">ERR_DOC_0x9</span>: item exceeds maximum permitted size.';
+      return;
+    }
+
+    // animated "scan"
+    bar.style.display = "block";
+    inner.style.width = "0%";
+    status.textContent = "Scanning… 0%";
+    var pct = 0;
+    var iv = setInterval(function () {
+      pct += Math.floor(6 + Math.random() * 16);
+      if (pct >= 100) pct = 100;
+      inner.style.width = pct + "%";
+      status.textContent = "Scanning… " + pct + "%";
+      if (pct >= 100) {
+        clearInterval(iv);
+        finishScan(slot, file, box, status);
+      }
+    }, 170);
+  }
+
+  function finishScan(slot, file, box, status) {
+    // PLANTED: Document A fails a checksum on its FIRST attempt, then succeeds.
+    if (slot === "A") {
+      flags = UOSP.loadFlags();
+      var attempts = (flags.docAAttempts || 0) + 1;
+      UOSP.setFlag("docAAttempts", attempts);
+      if (attempts === 1) {
+        box.classList.add("bad");
+        status.innerHTML = '<span class="inlinecode">ERR_DOC_0x4</span>: checksum mismatch with registry copy. ' +
+                           'Please re-upload this item.';
+        return;
+      }
+    }
+    // duplicate guard: B must differ from A by name
+    if (slot === "B" && slotName.A && file.name === slotName.A) {
+      box.classList.add("bad");
+      status.innerHTML = '<span class="inlinecode">ERR_DOC_0x5</span>: Document B must differ from Document A.';
+      return;
+    }
+
+    box.classList.add("ok");
+    status.innerHTML = "Accepted. Verification reference " +
+      "<span class=\"inlinecode\">" + refFor(file) + "</span>.";
+    slotOk[slot] = true;
+    slotName[slot] = file.name;
+    refreshValidate();
+  }
+
+  function refFor(file) {
+    var n = (file.name.length * 7 + file.size) % 100000;
+    return "V" + ("00000" + n).slice(-5);
+  }
+
+  // wire browse buttons + inputs
+  ["A", "B", "S"].forEach(function (slot) {
+    var btn = document.querySelector('.browse[data-for="' + slot + '"]');
+    var input = document.getElementById("file-" + slot);
+    btn.addEventListener("click", function () { input.click(); });
+    input.addEventListener("change", function () {
+      if (input.files && input.files[0]) handleFile(slot, input.files[0]);
+    });
+  });
+
+  document.getElementById("backBtn").addEventListener("click", function () {
+    UOSP.go("step1.html", "Returning to previous section&hellip;", 1500, 800);
+  });
+
+  document.getElementById("validateBtn").addEventListener("click", function () {
+    UOSP.saveState({
+      docA: slotName.A,
+      docB: slotName.B,
+      docS: slotName.S
+    });
+    // long registry validation round-trip with cycling sub-steps
+    UOSP.cycleOverlay([
+      "Validating documents against registry&hellip;",
+      "Computing checksums&hellip;",
+      "Cross-referencing item metadata&hellip;",
+      "Awaiting registry response&hellip;",
+      "Finalising verification&hellip;"
+    ], 1000);
+    UOSP.serverDelay(4200, 1600).then(function () {
+      location.href = "step3.html";
+    });
+  });
+})();
+</script>
+</body>
+</html>
